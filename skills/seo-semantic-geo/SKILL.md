@@ -52,13 +52,14 @@ anchor+target pair appearing on more than 60% of pages is boilerplate whatever i
 ## Workflow
 
 Standard-library Python 3 plus `requests`. No BeautifulSoup, no lxml, no jq — deliberately,
-so it runs anywhere, including a Raspberry Pi with nothing installed. Run the scripts from
-the skill's `scripts/` directory.
+so it runs anywhere, including a Raspberry Pi with nothing installed. Run the commands below
+from the skill's own directory, so that `scripts/crawl.py`, `scripts/linking.py`,
+`scripts/semantics.py` and `scripts/geo.py` resolve.
 
 ### 1. Crawl once, analyse three times
 
 ```bash
-python3 crawl.py https://example.com --max-pages 150
+python3 scripts/crawl.py https://example.com --max-pages 150
 ```
 
 Writes `/tmp/seo-example-com.json` and prints progress per page. It starts from the sitemap
@@ -73,7 +74,7 @@ so in the report).
 ### 2. Internal linking
 
 ```bash
-python3 linking.py /tmp/seo-example-com.json
+python3 scripts/linking.py /tmp/seo-example-com.json
 ```
 
 Reports: click depth from the home page, orphan pages, pages with **no** inbound editorial
@@ -84,7 +85,7 @@ to a redirect, sitemap discrepancies, and a table per section (first URL segment
 ### 3. Semantics
 
 ```bash
-python3 semantics.py /tmp/seo-example-com.json
+python3 scripts/semantics.py /tmp/seo-example-com.json
 ```
 
 TF-IDF over unigrams and bigrams, cosine similarity. In order of usefulness:
@@ -107,7 +108,7 @@ Stop-word lists for English and French are both applied, so mixed corpora work.
 ### 4. GEO — readability for generative engines
 
 ```bash
-python3 geo.py /tmp/seo-example-com.json
+python3 scripts/geo.py /tmp/seo-example-com.json
 ```
 
 Four separate axes, never merged into one score:
