@@ -61,6 +61,7 @@ def build(corpus: dict) -> dict:
 
     edges = []
     broken = []
+    assets: Counter = Counter()
     unverified: Counter = Counter()
     redirected = []
     external: Counter = Counter()
@@ -73,6 +74,13 @@ def build(corpus: dict) -> dict:
                 external[(urlparse(l["target"]).hostname or "").lower()] += 1
                 continue
             raw = l["target"]
+            if l.get("asset"):
+                # PDF, image, archive: the crawler never fetches these, so nothing
+                # can be said about their status. Counting them as broken was a
+                # systematic false positive on any page offering a download
+                # (observed: 12 on a single press page).
+                assets[raw] += 1
+                continue
             target = alias.get(raw)
             if target is None:
                 # Never fetched: that is a broken link only if the crawl went all
@@ -112,6 +120,7 @@ def build(corpus: dict) -> dict:
         "indexable": indexable,
         "edges": edges,
         "broken": broken,
+        "assets": assets,
         "unverified": unverified,
         "complete": complete,
         "redirected": redirected,
@@ -244,6 +253,7 @@ def analyse(corpus: dict) -> dict:
         "ambiguous_anchors": ambiguous,
         "sections": dict(sections),
         "broken": g["broken"],
+        "assets": g["assets"],
         "unverified": g["unverified"],
         "complete": g["complete"],
         "urls_discovered": corpus.get("urls_discovered", 0),
@@ -350,6 +360,15 @@ def report(a: dict, limit: int = 12) -> str:
         for x in a["broken"][:limit]:
             add(f"  - {x['reason']}: {x['source']} → {x['target']}")
         add("")
+    if a["assets"]:
+        add(
+            f"## Linked files ({sum(a['assets'].values())} links to {len(a['assets'])} files) — "
+            f"PDFs, images, archives, never crawled by design"
+        )
+        for u, n in a["assets"].most_common(min(limit, 5)):
+            add(f"  - ×{n} {u}")
+        add("")
+
     if a["unverified"]:
         add(
             f"## Unverified links — targets outside the crawled scope "

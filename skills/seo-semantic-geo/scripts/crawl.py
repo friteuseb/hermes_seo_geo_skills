@@ -62,6 +62,31 @@ def normalise(url: str) -> str:
     return urlunparse((scheme, host, path, "", query, ""))
 
 
+def decode(response) -> str:
+    """Decode the body without letting `requests` fall back to ISO-8859-1.
+
+    When the `Content-Type` header carries no charset — very common — the RFC
+    makes `requests` assume ISO-8859-1, and every UTF-8 page turns into mojibake
+    ("humiditÃ©"). It shows up in no counter, but it breaks tokenisation,
+    accented stop words, and therefore every similarity score downstream.
+    Priority: header charset, then <meta charset>, then detection.
+    """
+    ctype = response.headers.get("content-type", "")
+    m = re.search(r"charset=[\"']?([\w-]+)", ctype, re.I)
+    if m:
+        encoding = m.group(1)
+    else:
+        m = re.search(rb"<meta[^>]+charset=[\"']?\s*([\w-]+)", response.content[:4096], re.I)
+        if m:
+            encoding = m.group(1).decode("ascii", "ignore")
+        else:
+            encoding = response.apparent_encoding or "utf-8"
+    try:
+        return response.content.decode(encoding, errors="replace")
+    except (LookupError, TypeError):
+        return response.content.decode("utf-8", errors="replace")
+
+
 def same_site(url: str, host: str) -> bool:
     """Same site, ignoring the www prefix and nothing else."""
     h = (urlparse(url).hostname or "").lower()
@@ -314,7 +339,7 @@ def crawl(start: str, max_pages: int, delay: float, workers: int, obey_robots: b
 
         p = PageParser()
         try:
-            p.feed(r.text)
+            p.feed(decode(r))
             p.finish()
         except Exception as e:  # broken HTML must not stop the audit
             page["parse_error"] = str(e)[:200]
@@ -333,6 +358,7 @@ def crawl(start: str, max_pages: int, delay: float, workers: int, obey_robots: b
                     "rel": l["rel"],
                     "boilerplate": l["boilerplate"],
                     "internal": internal,
+                    "asset": bool(NON_HTML.search(target)),
                     "nofollow": "nofollow" in l["rel"],
                 }
             )
