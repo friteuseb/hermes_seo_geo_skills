@@ -2,12 +2,13 @@
 name: seo-semantic-geo
 description: "Editorial SEO audit: internal links, semantics, GEO."
 version: 1.0.0
-author: Cyril Wolfangel
+author: Cyril Wolfangel (cyril.wolfangel@gmail.com, @friteuseb)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [seo, geo, internal-linking, semantics, content, audit]
+    related_skills: [french-seo-writing]
 ---
 
 # Editorial SEO audit: internal linking, semantics and GEO
